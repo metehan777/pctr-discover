@@ -1,0 +1,6 @@
+name = "pctr-discover"
+pages_build_output_dir = "."
+compatibility_date = "2024-09-23"
+
+# The ANTHROPIC_API_KEY must be set via:
+#   wrangler pages secret put ANTHROPIC_API_KEY --project-name pctr-discover

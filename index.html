@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pCTR Predictor — Google Discover</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-6MNH8VX5LR"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-6MNH8VX5LR');
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --text: #e4e4ef;
+    --text2: #8888a0;
+    --accent: #6c5ce7;
+    --accent2: #a29bfe;
+    --green: #00cec9;
+    --yellow: #fdcb6e;
+    --red: #ff6b6b;
+    --orange: #e17055;
+    --radius: 12px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  .bg-grid {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(108, 92, 231, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108, 92, 231, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 920px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  .top-bar {
+    display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;
+    padding: 10px 16px; margin-bottom: 28px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 100px;
+    font-size: 13px;
+  }
+  .top-bar a {
+    display: inline-flex; align-items: center; gap: 5px;
+    color: var(--text2); text-decoration: none; transition: color 0.2s;
+  }
+  .top-bar a:hover { color: var(--accent2); }
+  .top-bar .sep { color: var(--border); }
+
+  .lang-note {
+    text-align: center; font-size: 13px; color: var(--text2);
+    margin-bottom: 24px; padding: 8px 16px;
+    background: rgba(0,206,201,0.06); border: 1px solid rgba(0,206,201,0.12);
+    border-radius: 100px;
+  }
+
+  .char-warn { color: var(--red) !important; }
+
+  header { text-align: center; margin-bottom: 48px; }
+
+  header .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    background: rgba(108, 92, 231, 0.12); border: 1px solid rgba(108, 92, 231, 0.25);
+    border-radius: 100px; font-size: 12px; font-weight: 600;
+    color: var(--accent2); letter-spacing: 0.5px; text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  header h1 {
+    font-size: 40px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.15;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 12px;
+  }
+
+  header p { color: var(--text2); font-size: 15px; max-width: 600px; margin: 0 auto; }
+
+  /* ── Formula ── */
+  .formula-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 32px; }
+  .formula-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+  .formula-toggle h3 { font-size: 14px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; }
+  .formula-toggle .chevron { color: var(--text2); transition: transform 0.3s; font-size: 18px; }
+  .formula-toggle.open .chevron { transform: rotate(180deg); }
+  .formula-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .formula-body.open { max-height: 800px; }
+
+  .formula-body .math {
+    font-family: var(--mono); font-size: 14px; color: var(--accent2);
+    background: var(--bg); padding: 16px 20px; border-radius: 8px;
+    margin: 16px 0 12px; line-height: 2; border-left: 3px solid var(--accent);
+  }
+
+  .formula-body .beta-note {
+    font-size: 13px; color: var(--red); background: rgba(255,107,107,0.06);
+    border: 1px solid rgba(255,107,107,0.15); border-radius: 8px;
+    padding: 10px 14px; margin: 12px 0;
+  }
+
+  .weights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 12px; }
+  .weight-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg); border-radius: 6px; font-size: 13px; }
+  .weight-item .name { color: var(--text2); }
+  .weight-item .val { font-family: var(--mono); color: var(--green); font-weight: 500; }
+
+  /* ── Input ── */
+  .input-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px; }
+  .input-section label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 10px; }
+  .input-section label span { font-weight: 400; color: var(--text2); font-size: 13px; }
+
+  textarea {
+    width: 100%; min-height: 140px; padding: 16px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.8;
+    resize: vertical; transition: border-color 0.2s;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,92,231,0.15); }
+  textarea::placeholder { color: #555568; }
+
+  .input-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; gap: 16px; }
+  .char-count { font-size: 13px; color: var(--text2); font-family: var(--mono); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 28px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-family: var(--font); font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn:hover { background: #5b4bd5; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,92,231,0.35); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
+  .btn.loading .spinner { display: block; }
+  .btn.loading .btn-text { opacity: 0.6; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Results ── */
+  .results-section { display: flex; flex-direction: column; gap: 20px; }
+
+  .result-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; animation: cardIn 0.4s ease both;
+  }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-header { display: flex; align-items: stretch; border-bottom: 1px solid var(--border); }
+
+  .pctr-badge {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px 28px; min-width: 130px; border-right: 1px solid var(--border);
+  }
+  .pctr-badge .value { font-size: 32px; font-weight: 800; font-family: var(--mono); letter-spacing: -1px; }
+  .pctr-badge .unit { font-size: 12px; color: var(--text2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  .pctr-low .value  { color: var(--red); }
+  .pctr-mid .value  { color: var(--yellow); }
+  .pctr-high .value { color: var(--green); }
+  .pctr-top .value  { color: #55efc4; text-shadow: 0 0 20px rgba(85,239,196,0.3); }
+
+  .result-title-block { flex: 1; padding: 20px 24px; display: flex; flex-direction: column; justify-content: center; }
+  .result-title-block h3 { font-size: 17px; font-weight: 600; line-height: 1.4; }
+  .result-title-block .meta { font-size: 12px; color: var(--text2); margin-top: 6px; font-family: var(--mono); display: flex; flex-wrap: wrap; gap: 12px; }
+  .result-title-block .meta .tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+  .tag-quality { background: rgba(0,206,201,0.1); color: var(--green); }
+  .tag-beta { background: rgba(255,107,107,0.1); color: var(--red); }
+  .tag-raw { background: rgba(162,155,254,0.1); color: var(--accent2); }
+
+  .result-body { padding: 20px 24px; }
+
+  .scores-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 16px; }
+
+  .score-bar { background: var(--bg); border-radius: 8px; padding: 10px 14px; }
+  .score-bar .label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+  .score-bar .label .name { color: var(--text2); text-transform: capitalize; }
+  .score-bar .label .num { font-family: var(--mono); font-weight: 600; }
+  .bar-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); width: 0; }
+
+  .clickbait-meter {
+    background: var(--bg); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
+    border-left: 3px solid var(--red);
+  }
+  .clickbait-meter .cb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .clickbait-meter .cb-label { font-size: 12px; color: var(--red); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .clickbait-meter .cb-value { font-family: var(--mono); font-weight: 700; font-size: 14px; }
+  .cb-low { color: var(--green); }
+  .cb-mid { color: var(--yellow); }
+  .cb-high { color: var(--red); }
+  .clickbait-meter .bar-track { height: 6px; }
+  .cb-bar { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); width: 0; }
+
+  .analysis-text {
+    font-size: 14px; color: var(--text2); line-height: 1.7;
+    padding: 14px 16px; background: var(--bg); border-radius: 8px;
+    margin-bottom: 14px; border-left: 3px solid var(--accent);
+  }
+
+  .improvements { display: flex; flex-direction: column; gap: 8px; }
+  .improvement {
+    display: flex; align-items: flex-start; gap: 10px; font-size: 14px;
+    padding: 10px 14px; background: rgba(0,206,201,0.06);
+    border: 1px solid rgba(0,206,201,0.12); border-radius: 8px;
+  }
+  .improvement .icon { color: var(--green); font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .error-card { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2); border-radius: var(--radius); padding: 20px 24px; color: var(--red); font-size: 14px; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+
+  @media (max-width: 640px) {
+    header h1 { font-size: 28px; }
+    .result-header { flex-direction: column; }
+    .pctr-badge { border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; gap: 8px; padding: 14px 20px; }
+    .scores-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="container">
+
+  <div class="top-bar">
+    <a href="https://www.linkedin.com/in/metehanyesilyurt" target="_blank" rel="noopener">in/metehanyesilyurt</a>
+    <span class="sep">|</span>
+    <a href="https://metehan.ai" target="_blank" rel="noopener">metehan.ai</a>
+    <span class="sep">|</span>
+    <a href="https://x.com/metehan777" target="_blank" rel="noopener">@metehan777</a>
+  </div>
+
+  <header>
+    <div class="badge"><span>⚡</span> Powered by Claude Opus 4.6 + SDK Telemetry</div>
+    <h1>Discover pCTR Predictor</h1>
+    <p>Predicts Google Discover click-through rates using a model calibrated against actual SDK telemetry — entity matching, freshness buckets, and the blindness penalty (β).</p>
+  </header>
+
+  <div class="formula-card">
+    <div class="formula-toggle" onclick="toggleFormula()">
+      <h3>📐 Discover pCTR Formula (SDK-Derived)</h3>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="formula-body" id="formulaBody">
+      <div class="math">
+quality  = Σ(wᵢ × fᵢ)       8 quality dimensions
+β_penalty = 1 − 0.35 × (clickbait_score / 10)
+raw      = quality × β_penalty
+pCTR     = 0.5% + (22% − 0.5%) × σ(0.65 × (raw − 5.5))
+      </div>
+      <div class="beta-note">
+        <strong>β Blindness Factor:</strong> From Google's LTV formula (LTV = bid × pCTR − β). Clickbait titles trigger high initial CTR but low engagement_time_msec. The feedback loop (Stage 9) reduces future pCTR. Our β_penalty models this: a clickbait_score of 7/10 reduces quality by 24.5%.
+      </div>
+      <div class="weights-grid">
+        <div class="weight-item"><span class="name">Entity Density</span><span class="val">22%</span></div>
+        <div class="weight-item"><span class="name">Topic Clarity</span><span class="val">18%</span></div>
+        <div class="weight-item"><span class="name">Informational Value</span><span class="val">16%</span></div>
+        <div class="weight-item"><span class="name">Freshness Signal</span><span class="val">12%</span></div>
+        <div class="weight-item"><span class="name">Engagement Depth</span><span class="val">10%</span></div>
+        <div class="weight-item"><span class="name">Title Formatting</span><span class="val">8%</span></div>
+        <div class="weight-item"><span class="name">Natural Authority</span><span class="val">8%</span></div>
+        <div class="weight-item"><span class="name">Visual Promise</span><span class="val">6%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lang-note">Multilingual — works with any language. Try titles in English, Turkish, German, Spanish, or any other language.</div>
+
+  <div class="input-section">
+    <label>News Titles <span>— one per line, up to 5 (max 150 chars each)</span></label>
+    <textarea id="titlesInput" placeholder="Acun Ilıcalı'nın Maribor'u şampiyonluğa oynuyor&#10;ChatGPT'nin Uygun fiyatlı &quot;pro lite&quot; planı ortaya çıktı&#10;Ankara-İzmir hızlı tren projesinden yeni görüntüler ortaya çıktı"></textarea>
+    <div class="input-footer">
+      <span class="char-count" id="charCount">0 titles</span>
+      <button class="btn" id="analyzeBtn" onclick="analyze()">
+        <div class="spinner"></div>
+        <span class="btn-text">Analyze pCTR</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="results-section" id="results">
+    <div class="empty-state">
+      <div class="icon">📊</div>
+      <p>Enter news titles to predict their Google Discover click-through rate.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const input = document.getElementById('titlesInput');
+const charCount = document.getElementById('charCount');
+const btn = document.getElementById('analyzeBtn');
+const resultsEl = document.getElementById('results');
+
+input.addEventListener('input', updateCount);
+updateCount();
+
+function updateCount() {
+  const lines = input.value.split('\n').filter(l => l.trim());
+  const count = lines.length;
+  const overLimit = count > 5;
+  const longLines = lines.filter(l => l.trim().length > 150);
+  let text = count + (count === 1 ? ' title' : ' titles');
+  if (overLimit) text += ' (max 5!)';
+  if (longLines.length) text += ` · ${longLines.length} over 150 chars`;
+  charCount.textContent = text;
+  charCount.classList.toggle('char-warn', overLimit || longLines.length > 0);
+}
+
+function toggleFormula() {
+  document.getElementById('formulaBody').classList.toggle('open');
+  document.querySelector('.formula-toggle').classList.toggle('open');
+}
+
+async function analyze() {
+  let titles = input.value.split('\n').map(t => t.trim()).filter(Boolean);
+  if (!titles.length) return;
+  if (titles.length > 5) { titles = titles.slice(0, 5); }
+  titles = titles.map(t => t.slice(0, 150));
+
+  btn.classList.add('loading');
+  btn.disabled = true;
+  resultsEl.innerHTML = '<div class="empty-state"><div class="spinner" style="display:block;width:32px;height:32px;border:3px solid rgba(108,92,231,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 16px"></div><p>Analyzing with Claude Opus 4.6...</p></div>';
+
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titles }),
+    });
+    const data = await resp.json();
+    if (data.error) { resultsEl.innerHTML = '<div class="error-card">' + esc(data.error) + '</div>'; return; }
+    renderResults(data.results);
+  } catch (e) {
+    resultsEl.innerHTML = '<div class="error-card">Network error: ' + esc(e.message) + '</div>';
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function pctrClass(pct) {
+  if (pct >= 14) return 'pctr-top';
+  if (pct >= 9) return 'pctr-high';
+  if (pct >= 5) return 'pctr-mid';
+  return 'pctr-low';
+}
+
+function barColor(val) {
+  if (val >= 8) return 'linear-gradient(90deg, #00cec9, #55efc4)';
+  if (val >= 6) return 'linear-gradient(90deg, #6c5ce7, #a29bfe)';
+  if (val >= 4) return 'linear-gradient(90deg, #fdcb6e, #ffeaa7)';
+  return 'linear-gradient(90deg, #ff6b6b, #fab1a0)';
+}
+
+function cbColor(val) {
+  if (val <= 2) return ['var(--green)', 'cb-low', 'linear-gradient(90deg, #00cec9, #55efc4)'];
+  if (val <= 5) return ['var(--yellow)', 'cb-mid', 'linear-gradient(90deg, #fdcb6e, #e17055)'];
+  return ['var(--red)', 'cb-high', 'linear-gradient(90deg, #e17055, #ff6b6b)'];
+}
+
+function fmt(k) { return k.replace(/_/g, ' '); }
+
+function renderResults(results) {
+  resultsEl.innerHTML = '';
+  results.forEach((r, i) => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.style.animationDelay = (i * 0.1) + 's';
+
+    if (r.error) {
+      card.className = 'error-card';
+      card.innerHTML = '<strong>' + esc(r.title) + '</strong><br>' + esc(r.error);
+      resultsEl.appendChild(card);
+      return;
+    }
+
+    const cls = pctrClass(r.pctr_pct);
+    let scoresHtml = '';
+    Object.keys(r.scores).forEach(d => {
+      const v = r.scores[d];
+      scoresHtml += `<div class="score-bar"><div class="label"><span class="name">${fmt(d)}</span><span class="num">${v.toFixed(1)}</span></div><div class="bar-track"><div class="bar-fill" data-width="${v*10}" style="background:${barColor(v)}"></div></div></div>`;
+    });
+
+    const [cbCol, cbCls, cbGrad] = cbColor(r.clickbait_score);
+    const betaStr = r.beta_penalty !== undefined ? (r.beta_penalty * 100).toFixed(1) + '%' : '—';
+
+    let improvHtml = '';
+    (r.improvements || []).forEach(imp => {
+      improvHtml += `<div class="improvement"><span class="icon">↗</span><span>${esc(imp)}</span></div>`;
+    });
+
+    card.innerHTML = `
+      <div class="result-header">
+        <div class="pctr-badge ${cls}">
+          <span class="value">${r.pctr_pct.toFixed(1)}%</span>
+          <span class="unit">pCTR</span>
+        </div>
+        <div class="result-title-block">
+          <h3>${esc(r.title)}</h3>
+          <div class="meta">
+            <span class="tag tag-quality">quality: ${r.quality_score}</span>
+            <span class="tag tag-beta">β: ${betaStr}</span>
+            <span class="tag tag-raw">raw: ${r.raw_score}</span>
+          </div>
+        </div>
+      </div>
+      <div class="result-body">
+        <div class="scores-grid">${scoresHtml}</div>
+        <div class="clickbait-meter">
+          <div class="cb-header">
+            <span class="cb-label">β Clickbait Penalty</span>
+            <span class="cb-value ${cbCls}">${r.clickbait_score.toFixed(1)} / 10</span>
+          </div>
+          <div class="bar-track"><div class="cb-bar" data-width="${r.clickbait_score*10}" style="background:${cbGrad}"></div></div>
+        </div>
+        <div class="analysis-text">${esc(r.analysis)}</div>
+        ${improvHtml ? '<div class="improvements">' + improvHtml + '</div>' : ''}
+      </div>`;
+
+    resultsEl.appendChild(card);
+    requestAnimationFrame(() => {
+      card.querySelectorAll('.bar-fill, .cb-bar').forEach(b => { b.style.width = b.dataset.width + '%'; });
+    });
+  });
+}
+</script>
+</body>
+</html>
