@@ -52,6 +52,18 @@
     pointer-events: none; z-index: 0;
   }
 
+  .sponsor-bar {
+    position: sticky; top: 0; z-index: 10;
+    text-align: center; padding: 8px 16px;
+    background: linear-gradient(90deg, rgba(108,92,231,0.15), rgba(0,206,201,0.12));
+    border-bottom: 1px solid rgba(108,92,231,0.2);
+    font-size: 12px; color: var(--text2); letter-spacing: 0.3px;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .sponsor-bar span { opacity: 0.7; }
+  .sponsor-bar a { color: var(--accent2); text-decoration: none; margin-left: 4px; }
+  .sponsor-bar a:hover { text-decoration: underline; color: var(--green); }
+
   .container { position: relative; z-index: 1; max-width: 920px; margin: 0 auto; padding: 40px 24px 80px; }
 
   .top-bar {
@@ -235,6 +247,7 @@
 </style>
 </head>
 <body>
+<div class="sponsor-bar"><span>Sponsored by</span> <a href="https://aeovision.ai?utm_source=pctr-discover&utm_medium=referral&utm_campaign=sponsor" target="_blank" rel="noopener"><strong>AEO Vision</strong> — Leading AI Visibility Platform</a></div>
 <div class="bg-grid"></div>
 <div class="container">
 
