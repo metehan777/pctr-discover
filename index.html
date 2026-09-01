@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>pCTR Predictor — Google Discover</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.svg">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-6MNH8VX5LR"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -247,7 +249,7 @@
 </style>
 </head>
 <body>
-<div class="sponsor-bar"><span>Sponsored by</span> <a href="https://aeovision.ai?utm_source=pctr-discover&utm_medium=referral&utm_campaign=sponsor" target="_blank" rel="noopener"><strong>AEO Vision</strong> — Leading AI Visibility Platform</a></div>
+<div class="sponsor-bar"><a href="https://metehan.ai/ai-search-research-stack?utm_source=pctr-discover&utm_medium=referral&utm_campaign=research-stack" target="_blank" rel="noopener">Get your AI Research Stack</a></div>
 <div class="bg-grid"></div>
 <div class="container">
 
@@ -260,7 +262,7 @@
   </div>
 
   <header>
-    <div class="badge"><span>⚡</span> Powered by Claude Opus 4.6 + SDK Telemetry</div>
+    <div class="badge"><span>⚡</span> Powered by Intelligent Models + SDK Telemetry</div>
     <h1>Discover pCTR Predictor</h1>
     <p>Predicts Google Discover click-through rates using a model calibrated against actual SDK telemetry — entity matching, freshness buckets, and the blindness penalty (β).</p>
     <p style="margin-top:10px;font-size:13px;">Want to learn more about Google Discover? Visit <a href="https://www.newzdash.com/?utm_source=pctr-discover&utm_medium=referral&utm_campaign=discover-learn" target="_blank" rel="noopener" style="color:var(--accent2);text-decoration:none;font-weight:600;">NewzDash</a> — the leading News SEO dashboard.</p>
@@ -351,7 +353,7 @@ async function analyze() {
 
   btn.classList.add('loading');
   btn.disabled = true;
-  resultsEl.innerHTML = '<div class="empty-state"><div class="spinner" style="display:block;width:32px;height:32px;border:3px solid rgba(108,92,231,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 16px"></div><p>Analyzing with Claude Opus 4.6...</p></div>';
+  resultsEl.innerHTML = '<div class="empty-state"><div class="spinner" style="display:block;width:32px;height:32px;border:3px solid rgba(108,92,231,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 16px"></div><p>Analyzing with intelligent models...</p></div>';
 
   try {
     const resp = await fetch('/api/analyze', {

@@ -15,7 +15,6 @@ export async function onRequestGet() {
     ctr_ceil:       0.22,
     sigmoid_alpha:  0.65,
     sigmoid_mu:     5.5,
-    model:          "claude-opus-4-6",
     formula: [
       "quality   = Σ(wᵢ × fᵢ)  — 8 quality dimensions",
       "β_penalty = 1 − 0.35 × (clickbait_score / 10)",

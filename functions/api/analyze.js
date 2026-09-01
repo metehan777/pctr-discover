@@ -9,13 +9,12 @@ const QUALITY_WEIGHTS = {
   visual_promise:      0.06,
 };
 
-const BETA_WEIGHT    = 0.35;
-const CTR_FLOOR      = 0.005;
-const CTR_CEIL       = 0.22;
-const SIGMOID_ALPHA  = 0.65;
-const SIGMOID_MU     = 5.5;
-const MODEL          = "claude-opus-4-6";
-const FALLBACK_MODEL = "gpt-5-nano";
+const BETA_WEIGHT   = 0.35;
+const CTR_FLOOR     = 0.005;
+const CTR_CEIL      = 0.22;
+const SIGMOID_ALPHA = 0.65;
+const SIGMOID_MU    = 5.5;
+const ROUTER_MODEL  = "deepseek/deepseek-v4-pro";
 
 function computePctr(scores, clickbaitScore) {
   let quality = 0;
@@ -46,6 +45,11 @@ function computePctr(scores, clickbaitScore) {
 }
 
 const ANALYSIS_PROMPT = `You are a Google Discover pCTR analyst. You understand Discover's 9-stage content pipeline and how its pCTR model evaluates titles.
+
+TODAY'S DATE: September 2026. The current year is 2026.
+- Treat 2026 as the present year. 2025 is last year.
+- Never write 2025 as if it is the current year.
+- If a suggested title or analysis mentions a year, use 2026 (or a future year), never 2025 as "now".
 
 KEY CONTEXT about Google Discover's actual ranking:
 - Discover's pCTR model uses og:title as a DIRECT input
@@ -112,7 +116,7 @@ PENALTY DIMENSION (negative — higher means MORE clickbait → LOWER pCTR):
 
 ALSO PROVIDE:
 - Brief 1-2 sentence analysis
-- 1-2 Discover-specific improvements
+- 1-2 Discover-specific improvements (use 2026 if a year is needed)
 
 Respond ONLY with valid JSON (no markdown fences):
 {
@@ -132,9 +136,14 @@ Respond ONLY with valid JSON (no markdown fences):
 }`;
 
 function parseAnalysisResponse(rawText) {
-  let text = rawText.trim();
+  let text = String(rawText || "").trim();
   if (text.startsWith("```")) {
     text = text.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+  }
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    text = text.slice(start, end + 1);
   }
   return JSON.parse(text);
 }
@@ -159,44 +168,17 @@ function buildResult(title, parsed) {
   };
 }
 
-async function callClaude(title, apiKey) {
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type":      "application/json",
-      "x-api-key":         apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 600,
-      temperature: 0,
-      messages: [
-        { role: "user", content: `${ANALYSIS_PROMPT}\n\nTITLE: "${title}"` },
-      ],
-    }),
-  });
-
-  if (!resp.ok) {
-    const err = await resp.text();
-    throw new Error(`Anthropic API ${resp.status}: ${err}`);
-  }
-
-  const msg = await resp.json();
-  return msg.content[0].text;
-}
-
-async function callOpenAI(title, apiKey) {
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+async function callRouter(title, apiKey) {
+  const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type":  "application/json",
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: FALLBACK_MODEL,
+      model: ROUTER_MODEL,
       temperature: 0,
-      max_tokens: 600,
+      max_tokens: 2048,
       messages: [
         { role: "user", content: `${ANALYSIS_PROMPT}\n\nTITLE: "${title}"` },
       ],
@@ -204,37 +186,27 @@ async function callOpenAI(title, apiKey) {
   });
 
   if (!resp.ok) {
-    const err = await resp.text();
-    throw new Error(`OpenAI API ${resp.status}: ${err}`);
+    throw new Error("Analysis service unavailable");
   }
 
   const msg = await resp.json();
-  return msg.choices[0].message.content;
+  const content = msg.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error("Empty analysis response");
+  }
+  return content;
 }
 
-async function analyzeTitle(title, anthropicKey, openaiKey) {
-  let rawText;
-  try {
-    rawText = await callClaude(title, anthropicKey);
-  } catch (claudeErr) {
-    if (!openaiKey) throw claudeErr;
-    try {
-      rawText = await callOpenAI(title, openaiKey);
-    } catch (oaiErr) {
-      throw new Error(`Claude failed: ${claudeErr.message} | OpenAI fallback failed: ${oaiErr.message}`);
-    }
-  }
-
+async function analyzeTitle(title, apiKey) {
+  const rawText = await callRouter(title, apiKey);
   const parsed = parseAnalysisResponse(rawText);
   return buildResult(title, parsed);
 }
 
 export async function onRequestPost(context) {
-  const anthropicKey = context.env.ANTHROPIC_API_KEY;
-  const openaiKey    = context.env.OPENAI_API_KEY;
-
-  if (!anthropicKey && !openaiKey) {
-    return Response.json({ error: "No API keys configured" }, { status: 500 });
+  const apiKey = context.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    return Response.json({ error: "API key not configured" }, { status: 500 });
   }
 
   let body;
@@ -257,9 +229,9 @@ export async function onRequestPost(context) {
   const results = [];
   for (const title of titles) {
     try {
-      results.push(await analyzeTitle(title, anthropicKey, openaiKey));
-    } catch (e) {
-      results.push({ title, error: e.message });
+      results.push(await analyzeTitle(title, apiKey));
+    } catch {
+      results.push({ title, error: "Analysis failed. Please try again." });
     }
   }
 
